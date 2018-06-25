@@ -1,33 +1,33 @@
 'use strict';
 
-var events = require('events');
-var util = require('util');
-var WebSocket = require('ws');
-var chores = require('./chores');
+const events = require('events');
+const util = require('util');
+const WebSocket = require('ws');
+const chores = require('./chores');
 
 function Client(params) {
   events.EventEmitter.call(this);
 
   params = params || {};
 
-  var config = extractConnectionOpts(params);
-  var logger = params.logger || chores.getDefaultLogger();
-  var stateMap = params.stateMap || chores.STATE_MAP;
-  var mapState = function(state) {
+  let config = extractConnectionOpts(params);
+  let logger = params.logger || chores.getDefaultLogger();
+  let stateMap = params.stateMap || chores.STATE_MAP;
+  let mapState = function(state) {
     return stateMap[state] || state;
   }
   let listener = params.listener || params.ws;
 
-  var self = this;
+  let self = this;
 
   self.loadDefinition = function(callback) {
     self.execCommand({ name: 'definition', options: [] }, callback);
   };
 
   self.execCommand = function(command, callback) {
-    var ws = listener ? listener : buildWebsocketClient(config);
+    let ws = listener ? listener : buildWebsocketClient(config);
 
-    var wsCommand = {
+    let wsCommand = {
       name: command.name,
       mode: command.mode,
       options: command.options,
@@ -101,15 +101,15 @@ util.inherits(Client, events.EventEmitter);
 
 module.exports = Client;
 
-var extractConnectionOpts = function(params) {
+const extractConnectionOpts = function(params) {
   params = params || {};
   return chores.pick(params.connection || params, [
     'url', 'host', 'port', 'path', 'authen', 'tunnel'
   ]);
 }
 
-var buildWebsocketClient = function(config) {
-  var wsOpts = {};
+const buildWebsocketClient = function(config) {
+  let wsOpts = {};
 
   if (config.authen instanceof Object) {
     wsOpts.headers = wsOpts.headers || {};
@@ -122,12 +122,12 @@ var buildWebsocketClient = function(config) {
     }
   }
 
-  var sslEnabled = (config.tunnel instanceof Object && config.tunnel.enabled);
+  let sslEnabled = (config.tunnel instanceof Object && config.tunnel.enabled);
   if (sslEnabled) {
     wsOpts.rejectUnauthorized = config.tunnel.rejectUnauthorized || false;
   }
 
-  var wsUrl = util.format('%s://%s:%s%s/execute',
+  let wsUrl = util.format('%s://%s:%s%s/execute',
     sslEnabled?'wss':'ws', config.host, config.port, config.path);
 
   return new WebSocket(wsUrl, null, wsOpts);
