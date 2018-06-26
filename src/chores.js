@@ -36,6 +36,35 @@ function Chores() {
     return typeof(s) === 'string';
   }
 
+  this.isFunction = function(f) {
+    return typeof f === 'function';
+  }
+
+  this.isObject = function(o) {
+    return o && typeof o === 'object';
+  }
+
+  this.ary = function(func, n) {
+    if (n == undefined || n < 0) return func;
+    if (this.isFunction(func) && n >= 0) {
+      return function() {
+        func.apply(null, Array.prototype.slice.call(arguments, 0, n));
+      }
+    }
+  }
+
+  this.omit = function(source, fieldNames) {
+    let target = {};
+    if (this.isObject(source) && this.isArray(fieldNames)) {
+      Object.keys(source).forEach(function(fieldName) {
+        if (fieldNames.indexOf(fieldName) < 0) {
+          target[fieldName] = source[fieldName];
+        }
+      })
+    }
+    return target;
+  }
+
   this.pick = function(source, fieldNames) {
     let target = {};
     if (this.isArray(fieldNames)) {

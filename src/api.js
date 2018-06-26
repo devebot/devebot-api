@@ -26,25 +26,20 @@ function Client(params) {
 
   self.execCommand = function(command, callback) {
     let ws = listener ? listener : buildWebsocketClient(config);
+    let wsCommand = chores.pick(command, ['name', 'mode', 'options', 'payload', 'package']);
 
-    let wsCommand = {
-      name: command.name,
-      mode: command.mode,
-      options: command.options,
-      payload: command.payload,
-      package: command.package,
-      command: command.name,
-      data: command.data
-    };
-    
+    // @Deprecated
+    wsCommand.command = command.name;
+    wsCommand.data = command.data;
+
     ws.on('open', function open() {
       logger.debug(' - Websocket@client is opened');
       ws.send(JSON.stringify(wsCommand));
     });
-    
+
     ws.on('message', function incomming(data) {
       logger.debug(' - Websocket@client is received a message data: %s', data);
-      
+
       data = JSON.parse(data);
 
       data.command = data.command || command;
@@ -82,12 +77,12 @@ function Client(params) {
           break;
       }
     });
-    
+
     ws.on('close', function handler(code, message) {
       self.emit(mapState('close'), code, message);
       logger.debug(' - Websocket@client is closed, code: %s, message: %s', code, message);
     });
-    
+
     ws.on('error', function handler(error) {
       self.emit(mapState('error'), error);
       logger.debug(' - Websocket@client encounter an error: %s', error);
