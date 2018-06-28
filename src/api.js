@@ -17,6 +17,7 @@ function Client(params) {
     return stateMap[state] || state;
   }
   let listener = params.listener || params.ws;
+  listener = (listener instanceof events.EventEmitter) ? listener : undefined;
 
   let self = this;
 
@@ -37,42 +38,48 @@ function Client(params) {
       ws.send(JSON.stringify(wsCommand));
     });
 
-    ws.on('message', function incomming(data) {
-      logger.debug(' - Websocket@client is received a message data: %s', data);
+    ws.on('message', function incomming(msg) {
+      logger.debug(' - Websocket@client is received a message: %s', msg);
 
-      data = JSON.parse(data);
+      msg = JSON.parse(msg);
 
-      data.command = data.command || command;
+      // @Deprecated
+      msg.command = msg.command || command;
 
-      switch(data.state) {
+      let result, exception;
+      let state = msg.state;
+
+      switch(state) {
         case 'definition':
+          result = msg.value;
           ws.close();
-          self.emit(mapState(data.state), data);
-          callback && callback(null, data.value);
+          self.emit(mapState(state), msg);
           break;
         case 'started':
-        case 'completed':
         case 'cancelled':
+          self.emit(mapState(state), msg);
+          break;
+        case 'completed':
         case 'failed':
         case 'timeout':
-          self.emit(mapState(data.state), data);
+          result = msg;
+          self.emit(mapState(state), msg);
           break;
         case 'done':
           ws.close();
-          self.emit(mapState(data.state), data);
-          callback && callback();
+          self.emit(mapState(state), msg);
           break;
         case 'noop':
-          ws.close();
-          self.emit(mapState(data.state), data);
-          callback && callback({
+          exception = {
             name: 'IS_NOT_IMPLEMENTED',
             message: 'operation is not implemented'
-          });
+          };
+          ws.close();
+          self.emit(mapState(state), msg);
           break;
         default:
-          if (stateMap[data.state]) {
-            self.emit(stateMap[data.state], data);
+          if (stateMap[state]) {
+            self.emit(stateMap[state], msg);
           }
           break;
       }
@@ -80,12 +87,14 @@ function Client(params) {
 
     ws.on('close', function handler(code, message) {
       self.emit(mapState('close'), code, message);
-      logger.debug(' - Websocket@client is closed, code: %s, message: %s', code, message);
+      logger.debug(' - Websocket@client is closed, code: [%s], message: [%s]', code, message);
+      callback && callback(exception, result);
     });
 
     ws.on('error', function handler(error) {
       self.emit(mapState('error'), error);
       logger.debug(' - Websocket@client encounter an error: %s', error);
+      callback && callback(error);
     });
 
     (typeof(ws.ready) === 'function') && ws.ready();
