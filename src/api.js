@@ -28,6 +28,7 @@ function Client(params) {
   self.execCommand = function(command, callback) {
     let ws = listener ? listener : buildWebsocketClient(config);
     let wsCommand = chores.pick(command, ['name', 'mode', 'options', 'payload', 'package']);
+    let result, exception;
 
     // @Deprecated
     wsCommand.command = command.name;
@@ -46,12 +47,11 @@ function Client(params) {
       // @Deprecated
       msg.command = msg.command || command;
 
-      let result, exception;
       let state = msg.state;
 
       switch(state) {
         case 'definition':
-          result = msg.value;
+          result = msg;
           ws.close();
           self.emit(mapState(state), msg);
           break;
